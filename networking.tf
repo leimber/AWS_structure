@@ -110,9 +110,76 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# vinculacion tabla de rutas privadas
+# vinculación tabla de rutas privadas
 resource "aws_route_table_association" "private" {
   count          = 2
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[count.index].id
+}
+
+
+
+#CREACIÓN VPC SECUNDARIA PARA BACKUP
+
+# VPC  backup
+resource "aws_vpc" "backup" {
+  cidr_block           = "172.16.0.0/16"  # Diferente rango de IPs que la VPC principal
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-backup-vpc"
+  })
+}
+
+# Subnet backups
+resource "aws_subnet" "backup" {
+  count             = 2
+  vpc_id            = aws_vpc.backup.id
+  cidr_block        = "172.16.${count.index + 1}.0/24"
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-backup-${count.index + 1}"
+  })
+}
+
+# VPC Peering
+resource "aws_vpc_peering_connection" "main_to_backup" {
+  vpc_id      = aws_vpc.main.id
+  peer_vpc_id = aws_vpc.backup.id
+  auto_accept = true
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-peering"
+  })
+}
+
+#tabla de rutas VPC principal para acceder VPC de backup
+resource "aws_route" "main_to_backup_private" {
+  count                     = 2
+  route_table_id            = aws_route_table.private[count.index].id
+  destination_cidr_block    = aws_vpc.backup.cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.main_to_backup.id
+}
+
+#tabla de ruta VPC de backup
+resource "aws_route_table" "backup" {
+  vpc_id = aws_vpc.backup.id
+
+  route {
+    cidr_block                = aws_vpc.main.cidr_block
+    vpc_peering_connection_id = aws_vpc_peering_connection.main_to_backup.id
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-backup-rt"
+  })
+}
+
+# Asociar tabla subnets de backup
+resource "aws_route_table_association" "backup" {
+  count          = 2
+  subnet_id      = aws_subnet.backup[count.index].id
+  route_table_id = aws_route_table.backup.id
 }

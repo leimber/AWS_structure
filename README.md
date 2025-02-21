@@ -119,8 +119,7 @@ El cumplimieto de los principios del well-Architected Framework asegura que la i
 - **Configuración del proveedor AWS** indica a terraform cuál es el proveedor.
 - **Versionado de Terraform y proveedores**.
 
-## **Dirección Web**
-Puedes acceder a la infraestructura desplegada en: http://lab4-final-alb-public-637205793.eu-west-3.elb.amazonaws.com/
+
 
 ## **Requisitos Previos**
 - **Terraform instalado**.
@@ -145,3 +144,5 @@ Puedes acceder a la infraestructura desplegada en: http://lab4-final-alb-public-
    terraform destroy
    ```
 
+** REpositorio en
+https://github.com/leimber/AWS_structure

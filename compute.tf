@@ -36,16 +36,50 @@ resource "aws_launch_template" "main" {
               systemctl start httpd
               systemctl enable httpd
 
-              # Crear página con Redis
+              # Página personalizada
               cat <<'HTML' > /var/www/html/index.html
-              <h1>Servidor Web desde ASG</h1>
-              <p>Contenido compartido EFS:</p>
-              <div id='shared'></div>
-              <p>Contador de visitas (Redis):</p>
-              <div id='counter'></div>
-              <script>
-                fetch('/shared/content.txt').then(r => r.text()).then(t => document.getElementById('shared').innerHTML = t);
-              </script>
+              <!DOCTYPE html>
+              <html>
+              <head>
+                  <title>Lab4 HackABoss</title>
+                  <style>
+                      body { 
+                          font-family: Arial, sans-serif;
+                          text-align: center;
+                          padding-top: 50px;
+                          background-color: #f0f0f0;
+                      }
+                      .container {
+                          background-color: white;
+                          padding: 20px;
+                          border-radius: 10px;
+                          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                          margin: auto;
+                          max-width: 600px;
+                      }
+                  </style>
+              </head>
+              <body>
+                  <div class="container">
+                      <h1>¡Hola, Esteve, bienvenido al Lab4 de AWS!</h1>
+                      <p>Servidor: $(hostname)</p>
+                      <p>Fecha: $(date)</p>
+                      <p>Esta infraestructura incluye:</p>
+                      <ul style="list-style: none;">
+                          <li>✅ Auto Scaling Group</li>
+                          <li>✅ Load Balancers</li>
+                          <li>✅ Redis Cache</li>
+                          <li>✅ RDS Database</li>
+                          <li>✅ EFS Storage</li>
+                      </ul>
+                      <p>Contenido compartido EFS:</p>
+                      <div id='shared'></div>
+                  </div>
+                  <script>
+                    fetch('/shared/content.txt').then(r => r.text()).then(t => document.getElementById('shared').innerHTML = t);
+                  </script>
+              </body>
+              </html>
               HTML
 
               # Crear contenido compartido
@@ -55,7 +89,7 @@ resource "aws_launch_template" "main" {
               chown -R apache:apache /var/www/html/shared
               chmod -R 755 /var/www/html/shared
               EOF
-  )
+)
 
   tag_specifications {
     resource_type = "instance"

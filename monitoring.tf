@@ -1,4 +1,4 @@
-#dashboard CloudWatch
+# dashboard CloudWatch
 resource "aws_cloudwatch_dashboard" "main" {
   dashboard_name = replace("${var.project_name}-dashboard", "_", "-")
 
@@ -13,7 +13,9 @@ resource "aws_cloudwatch_dashboard" "main" {
         height = 6
         properties = {
           metrics = [
-            ["AWS/AutoScaling", "GroupTotalInstances", "AutoScalingGroupName", aws_autoscaling_group.main.name],
+            ["AWS/AutoScaling", "GroupTotalInstances", "AutoScalingGroupName", aws_autoscaling_group.public.name],
+            [".", "GroupInServiceInstances", ".", "."],
+            ["AWS/AutoScaling", "GroupTotalInstances", "AutoScalingGroupName", aws_autoscaling_group.internal.name],
             [".", "GroupInServiceInstances", ".", "."]
           ]
           period = 300
@@ -22,7 +24,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           view   = "timeSeries"
         }
       },
-      #Métricas ALB público
+      # Métricas ALB público y interno
       {
         type   = "metric"
         x      = 12
@@ -31,18 +33,22 @@ resource "aws_cloudwatch_dashboard" "main" {
         height = 6
         properties = {
           metrics = [
-            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.public.arn_suffix],
-            [".", "HTTPCode_Target_2XX_Count", ".", "."],
-            [".", "HTTPCode_Target_4XX_Count", ".", "."],
-            [".", "HTTPCode_Target_5XX_Count", ".", "."]
+            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.public.arn_suffix, { "label": "Public ALB Requests" }],
+            [".", "HTTPCode_Target_2XX_Count", ".", ".", { "label": "Public ALB 2XX" }],
+            [".", "HTTPCode_Target_4XX_Count", ".", ".", { "label": "Public ALB 4XX" }],
+            [".", "HTTPCode_Target_5XX_Count", ".", ".", { "label": "Public ALB 5XX" }],
+            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.internal.arn_suffix, { "label": "Internal ALB Requests" }],
+            [".", "HTTPCode_Target_2XX_Count", ".", ".", { "label": "Internal ALB 2XX" }],
+            [".", "HTTPCode_Target_4XX_Count", ".", ".", { "label": "Internal ALB 4XX" }],
+            [".", "HTTPCode_Target_5XX_Count", ".", ".", { "label": "Internal ALB 5XX" }]
           ]
           period = 300
           region = var.region
-          title  = "ALB Público - Requests"
+          title  = "ALB - Requests"
           view   = "timeSeries"
         }
       },
-      #métricas de CPU de EC2
+      # Métricas de CPU de EC2
       {
         type   = "metric"
         x      = 0
@@ -51,7 +57,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         height = 6
         properties = {
           metrics = [
-            ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", aws_autoscaling_group.main.name, { "stat": "Average" }]
+            ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", aws_autoscaling_group.public.name, { "stat": "Average", "label": "Public ASG CPU" }],
+            ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", aws_autoscaling_group.internal.name, { "stat": "Average", "label": "Internal ASG CPU" }]
           ]
           period = 300
           region = var.region
@@ -87,10 +94,14 @@ resource "aws_cloudwatch_dashboard" "main" {
         height = 6
         properties = {
           metrics = [
-            ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_db_instance.main.identifier],
-            [".", "FreeableMemory", ".", "."],
-            [".", "ReadIOPS", ".", "."],
-            [".", "WriteIOPS", ".", "."]
+            ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_db_instance.primary.identifier, { "label": "Primary CPU" }],
+            [".", "FreeableMemory", ".", ".", { "label": "Primary Memory" }],
+            [".", "ReadIOPS", ".", ".", { "label": "Primary Read IOPS" }],
+            [".", "WriteIOPS", ".", ".", { "label": "Primary Write IOPS" }],
+            ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_db_instance.secondary.identifier, { "label": "Secondary CPU" }],
+            [".", "FreeableMemory", ".", ".", { "label": "Secondary Memory" }],
+            [".", "ReadIOPS", ".", ".", { "label": "Secondary Read IOPS" }],
+            [".", "WriteIOPS", ".", ".", { "label": "Secondary Write IOPS" }]
           ]
           period = 300
           region = var.region
@@ -98,7 +109,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           view   = "timeSeries"
         }
       },
-      #Métricas de CloudFront
+      # Métricas de CloudFront
       {
         type   = "metric"
         x      = 12
